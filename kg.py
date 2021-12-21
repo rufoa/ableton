@@ -75,7 +75,7 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
 
 
 def generate_all(k: dsa.DSAPrivateKey, hwid: str) -> str:
-    yield generate_single(k, 0x0, 0xa0, hwid)
+    yield generate_single(k, 0x0, 0xb0, hwid)
     for i in range(0x40, 0xff + 1):
         yield generate_single(k, i, 0x10, hwid)
     for i in range(0x8000, 0x80ff + 1):
