@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.hashes import SHA1
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--hwid", help="Your hardware code", required=True)
 parser.add_argument("-o", "--output", help="Authorization file", default="Authorize.auz")
-parser.add_argument("-v", "--version", help="9-12", type=int, choices=range(9, 13), default=12)
+parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(9, 13), default=12)
 args = parser.parse_args()
 
 
