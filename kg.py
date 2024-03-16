@@ -105,10 +105,6 @@ if len(hwid) == 24:
     hwid = "-".join((hwid[:4], hwid[4:8], hwid[8:12], hwid[12:16], hwid[16:20], hwid[20:]))
 assert re.fullmatch(r"([0-9A-F]{4}-){5}[0-9A-F]{4}", hwid), f"Expected hardware ID like 1111-1111-1111-1111-1111-1111, not {hwid}"
 
-out = []
-for line in generate_all(team_r2r_key, hwid, args.version):
-    # print(line)
-    out.append(line)
-
+lines = generate_all(team_r2r_key, hwid, args.version)
 with open(args.output, mode="w", newline="\n") as f:
-    f.write("\n".join(out))
+    f.write("\n".join(lines))
