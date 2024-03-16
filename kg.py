@@ -1,5 +1,5 @@
+import argparse
 import re
-import sys
 from random import randint
 from typing import List
 
@@ -7,6 +7,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.hashes import SHA1
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--hwid", help="Your hardware code", required=True)
+parser.add_argument("-o", "--output", help="Authorization file", default="Authorize.auz")
+parser.add_argument("-v", "--version", help="9-12", type=int, choices=range(9, 13), default=12)
+args = parser.parse_args()
 
 
 def construct_key(*, p, q, g, y, x) -> dsa.DSAPrivateKey:
@@ -74,8 +80,12 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
     return f.format(serial, id1, id2, sig)
 
 
-def generate_all(k: dsa.DSAPrivateKey, hwid: str) -> str:
-    yield generate_single(k, 0x0, 0xb0, hwid)
+def generate_all(k: dsa.DSAPrivateKey, hwid: str, version: int) -> str:
+    ident = { 9: 0x90,
+             10: 0xa0,
+             11: 0xb0,
+             12: 0xc0}
+    yield generate_single(k, 0x0, ident[version], hwid)
     for i in range(0x40, 0xff + 1):
         yield generate_single(k, i, 0x10, hwid)
     for i in range(0x8000, 0x80ff + 1):
@@ -90,9 +100,15 @@ team_r2r_key = construct_key(
     x=0xc369ea757b46484d1df3819cc4183f6f9a9bcf3c
 )
 
-assert len(sys.argv) == 2, "Expected hardware ID as command line argument"
-hwid = sys.argv[1].upper()
-assert re.fullmatch(r"([0-9A-F]{4}-){5}[0-9A-F]{4}", hwid), "Expected hardware ID like 1111-1111-1111-1111-1111-1111"
+hwid = args.hwid.upper()
+if len(hwid) == 24:
+    hwid = "-".join((hwid[:4], hwid[4:8], hwid[8:12], hwid[12:16], hwid[16:20], hwid[20:]))
+assert re.fullmatch(r"([0-9A-F]{4}-){5}[0-9A-F]{4}", hwid), f"Expected hardware ID like 1111-1111-1111-1111-1111-1111, not {hwid}"
 
-for line in generate_all(team_r2r_key, hwid):
-    print(line)
+out = []
+for line in generate_all(team_r2r_key, hwid, args.version):
+    # print(line)
+    out.append(line)
+
+with open(args.output, mode="w", newline="\n") as f:
+    f.write("\n".join(out))
