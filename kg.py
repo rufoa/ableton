@@ -1,7 +1,6 @@
 import argparse
 import re
 from random import randint
-from typing import List
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import dsa
@@ -40,7 +39,7 @@ def fix_group_checksum(group_number: int, n: int) -> int:
     return n & 0xfff0 | checksum
 
 
-def overall_checksum(groups: List[int]) -> int:
+def overall_checksum(groups: list[int]) -> int:
     r = 0
     for i in range(20):
         g, digit = divmod(i, 4)
