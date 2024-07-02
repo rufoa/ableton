@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--hwid", help="Your hardware code", required=True)
 parser.add_argument("-o", "--output", help="Authorization file", default="Authorize.auz")
 parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(9, 13), default=12)
+parser.add_argument("-e", "--edition", help="Ableton Live edition", choices=["Lite", "Intro", "Standard", "Suite"], default="Suite")
 args = parser.parse_args()
 
 
@@ -79,8 +80,9 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
     return f.format(serial, id1, id2, sig)
 
 
-def generate_all(k: dsa.DSAPrivateKey, hwid: str, ver: int) -> str:
-    yield generate_single(k, 0x2 if ver >= 12 else 0x0, ver << 4, hwid)
+def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> str:
+    ident = {"Lite": 4, "Intro": 3, "Standard": 0, "Suite":  2}
+    yield generate_single(k, ident[edition], version << 4, hwid)
     for i in range(0x40, 0xff + 1):
         yield generate_single(k, i, 0x10, hwid)
     for i in range(0x8000, 0x80ff + 1):
@@ -100,6 +102,6 @@ if len(hwid) == 24:
     hwid = "-".join(hwid[i:i+4] for i in range(0, 24, 4))
 assert re.fullmatch(r"([0-9A-F]{4}-){5}[0-9A-F]{4}", hwid), f"Expected hardware ID like 1111-1111-1111-1111-1111-1111, not {hwid}"
 
-lines = generate_all(team_r2r_key, hwid, args.version)
+lines = generate_all(team_r2r_key, args.edition, args.version, hwid)
 with open(args.output, mode="w", newline="\n") as f:
     f.write("\n".join(lines))
