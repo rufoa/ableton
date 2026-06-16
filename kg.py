@@ -17,7 +17,7 @@ EDITIONS = {
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--hwid", help="Your hardware code", required=True)
 parser.add_argument("-o", "--output", help="Authorization file", default="Authorize.auz")
-parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(9, 13), default=12)
+parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(8, 13), default=12)
 parser.add_argument("-e", "--edition", help="Ableton Live edition", type=str.capitalize, choices=EDITIONS, default="Suite")
 args = parser.parse_args()
 
@@ -88,11 +88,12 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
 
 
 def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> str:
-    yield generate_single(k, EDITIONS[edition], version << 4, hwid)
+    yield generate_single(k, EDITIONS[edition] if version > 8 else 0, version << 4, hwid)
     for i in range(0x40, 0xff + 1):
         yield generate_single(k, i, 0x10, hwid)
-    for i in range(0x8000, 0x80ff + 1):
-        yield generate_single(k, i, 0x10, hwid)
+    if version > 8:
+        for i in range(0x8000, 0x80ff + 1):
+            yield generate_single(k, i, 0x10, hwid)
 
 
 team_r2r_key = construct_key(
