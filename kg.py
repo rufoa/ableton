@@ -88,11 +88,25 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
 
 
 def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> str:
-    yield generate_single(k, EDITIONS[edition] if version > 8 else 0, version << 4, hwid)
-    for i in range(0x40, 0xff + 1):
-        yield generate_single(k, i, 0x10, hwid)
-    if version > 8:
+    if version >= 9:
+        yield generate_single(k, EDITIONS[edition], version << 4, hwid)
+        for i in range(0x40, 0xff + 1):
+            yield generate_single(k, i, 0x10, hwid)
         for i in range(0x8000, 0x80ff + 1):
+            yield generate_single(k, i, 0x10, hwid)
+    else:
+        match EDITIONS[edition]:
+            case 0:
+                id1 = 0
+                addons = range(0x40, 0x86 + 1)
+            case 2:
+                id1 = 0
+                addons = range(0x40, 0xff + 1)
+            case 3 | 4:
+                id1 = 3
+                addons = range(0)
+        yield generate_single(k, id1, version << 4, hwid)
+        for i in addons:
             yield generate_single(k, i, 0x10, hwid)
 
 
