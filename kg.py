@@ -57,6 +57,7 @@ def fix_group_checksum(group_number: int, n: int) -> int:
 
 
 def overall_checksum(groups: list[int]) -> int:
+    """CRC-16/UMTS"""
     r = 0
     for i in range(20):
         g, digit = divmod(i, 4)
