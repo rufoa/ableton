@@ -1,5 +1,8 @@
 import argparse
+import enum
+import itertools
 import re
+import typing
 from collections.abc import Iterable
 from random import randint
 
@@ -8,12 +11,19 @@ from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.hashes import SHA1
 
-EDITIONS = {
-    "Lite": 4,
-    "Intro": 3,
-    "Standard": 0,
-    "Suite": 2,
-}
+
+class Edition(enum.StrEnum):
+    Lite = "Lite"
+    Intro = "Intro"
+    Standard = "Standard"
+    Suite = "Suite"
+
+    @classmethod
+    def from_string(cls, s: str) -> typing.Self:
+        try:
+            return cls(str.capitalize(s))
+        except ValueError:
+            raise argparse.ArgumentTypeError("Unknown edition: {}".format(s))
 
 
 def parse_hwid(s: str) -> str:
@@ -26,8 +36,8 @@ def parse_hwid(s: str) -> str:
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--hwid", help="Your hardware code", type=parse_hwid, required=True)
 parser.add_argument("-o", "--output", help="Authorization file", default="Authorize.auz")
-parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(9, 13), default=12)
-parser.add_argument("-e", "--edition", help="Ableton Live edition", type=str.capitalize, choices=EDITIONS, default="Suite")
+parser.add_argument("-v", "--version", help="Ableton Live version", type=int, choices=range(8, 13), default=12)
+parser.add_argument("-e", "--edition", help="Ableton Live edition", type=Edition.from_string, choices=list(Edition), default=Edition.Suite)
 args = parser.parse_args()
 
 
@@ -97,11 +107,38 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
     return f.format(serial, id1, id2, sig)
 
 
-def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> Iterable[str]:
-    yield generate_single(k, EDITIONS[edition], version << 4, hwid)
-    for i in range(0x40, 0xff + 1):
-        yield generate_single(k, i, 0x10, hwid)
-    for i in range(0x8000, 0x80ff + 1):
+def generate_all(k: dsa.DSAPrivateKey, edition: Edition, version: int, hwid: str) -> Iterable[str]:
+    id1 = None
+
+    if version >= 9:
+        match edition:
+            case Edition.Lite:
+                id1 = 4
+            case Edition.Intro:
+                id1 = 3
+            case Edition.Standard:
+                id1 = 0
+            case Edition.Suite:
+                id1 = 2
+
+        addons = itertools.chain(range(0x40, 0xFF + 1), range(0x8000, 0x80FF + 1))
+    else:
+        match edition:
+            case Edition.Intro:
+                id1 = 3
+                addons = range(0)
+            case Edition.Standard:
+                id1 = 0
+                addons = range(0x40, 0x86 + 1)
+            case Edition.Suite:
+                id1 = 0
+                addons = range(0x40, 0xFF + 1)
+
+    if id1 is None:
+        raise ValueError("Unknown edition {} for version {}".format(edition, version))
+
+    yield generate_single(k, id1, version << 4, hwid)
+    for i in addons:
         yield generate_single(k, i, 0x10, hwid)
 
 
