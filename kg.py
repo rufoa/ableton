@@ -1,5 +1,6 @@
 import argparse
 import re
+from collections.abc import Iterable
 from random import randint
 
 from cryptography.hazmat.backends import default_backend
@@ -87,7 +88,7 @@ def generate_single(k: dsa.DSAPrivateKey, id1: int, id2: int, hwid: str) -> str:
     return f.format(serial, id1, id2, sig)
 
 
-def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> str:
+def generate_all(k: dsa.DSAPrivateKey, edition: str, version: int, hwid: str) -> Iterable[str]:
     yield generate_single(k, EDITIONS[edition], version << 4, hwid)
     for i in range(0x40, 0xff + 1):
         yield generate_single(k, i, 0x10, hwid)
